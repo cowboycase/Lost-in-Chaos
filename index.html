@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kaos Hayaleti ★ Lorenz Kelebeği & Generative Art</title>
+  <!-- Google Fonts: 8-Bit Retro Fontları -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="arcade-cabinet" id="arcadeCabinet">
+    
+    <!-- Üst Başlık ve Sistem Bilgi Çubuğu -->
+    <header class="header-bar">
+      <div class="title-group">
+        <span class="retro-badge" id="levelBadge">3D LORENZ SİSTEMİ</span>
+        <h1 class="game-title">CHAOS GHOST ★ LORENZ ATTRACTOR</h1>
+      </div>
+      <div id="statusPill" class="status-pill">DURUM: KAOTİK DÖNGÜ</div>
+    </header>
+
+    <!-- Oyun Sahnesi ve Yan Kontroller (Yan Yana Çift Sütun) -->
+    <main class="main-stage">
+      
+      <!-- SOL SÜTUN: DEVASA OYUN KARESİ (CANVAS) -->
+      <section class="screen-wrapper" id="screenWrapper">
+        <!-- OOF! ANTIGRAVITY! Bildirimi -->
+        <div id="oofBanner" class="oof-banner">⚡ OOF! ANTIGRAVITY! ⚡</div>
+
+        <!-- Dash Bildirimi -->
+        <div id="dashBanner" class="dash-banner">💨 DASH!</div>
+
+        <!-- Fotoğraf Çekildi Bildirimi -->
+        <div id="photoBanner" class="photo-banner">📸 GENERATIVE ART KAYDEDİLDİ!</div>
+
+        <!-- Canvas HUD (Skor & Z-Derinlik) -->
+        <div class="canvas-hud">
+          <div class="hud-box">SKOR: <span id="scoreDisplay">0000</span></div>
+          <div class="hud-box">EN İYİ: <span id="highScoreDisplay">0000</span></div>
+          <div class="hud-box">Z-DERİNLİK: <span id="zDepthDisplay">27.0</span></div>
+        </div>
+
+        <!-- 8-Bit Canvas: Kesinlikle arc() Yok, Tamamen fillRect() Piksel Sanatı (Kare Format) -->
+        <canvas id="gameCanvas" width="320" height="320"></canvas>
+      </section>
+
+      <!-- SAĞ SÜTUN: KONTROL VE BİLGİ PANELİ (SIDEBAR) -->
+      <aside class="side-panel">
+        
+        <!-- 1. Skor ve Dinamik Bölge (Kelebek Kanadı) Kartı -->
+        <div class="panel-card wing-card">
+          <div class="card-title">
+            <span>🦋 KELEBEK BÖLGESİ</span>
+            <span class="nav-hint-badge">LORENZ (x, y, z)</span>
+          </div>
+
+          <div class="wing-info-container">
+            <div class="wing-label-text">AKTİF YÖRÜNGE:</div>
+            <div id="wingDisplay" class="wing-status-badge left">BÖLGE: SOL KANAT</div>
+            <div class="z-scale-info">
+              <span>Z-EKSENİ ÖLÇEĞİ:</span>
+              <span id="scaleDisplay" class="val">2x (ORTA)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Parametre Ayarları ve Aksiyon Kartı -->
+        <div class="panel-card">
+          <div class="card-title">
+            <span>✦ KAOS PARAMETRELERİ</span>
+            <span class="nav-hint-badge">[▲/▼] SEÇ • [◀/▶] AYARLA</span>
+          </div>
+          
+          <!-- Slider 1: Kaos Seviyesi (Lorenz Rho Parametresi) -->
+          <div class="slider-group" id="sliderGroup0" data-index="0">
+            <div class="slider-label">
+              <span class="slider-title"><span class="pointer-arrow">▶</span> 1. KAOS SEVİYESİ (ρ)</span>
+              <span id="chaosVal" class="val">28.0</span>
+            </div>
+            <input type="range" id="chaosSlider" min="1.0" max="45.0" step="0.5" value="28.0" tabindex="-1">
+          </div>
+
+          <!-- Slider 2: Rüzgar (Yatay Drift Kuvveti) -->
+          <div class="slider-group" id="sliderGroup1" data-index="1">
+            <div class="slider-label">
+              <span class="slider-title"><span class="pointer-arrow">▶</span> 2. RÜZGAR (DRIFT)</span>
+              <span id="windVal" class="val">0.0</span>
+            </div>
+            <input type="range" id="windSlider" min="-20.0" max="20.0" step="1.0" value="0.0" tabindex="-1">
+          </div>
+
+          <!-- Slider 3: Akış Hızı (Zaman dt) -->
+          <div class="slider-group" id="sliderGroup2" data-index="2">
+            <div class="slider-label">
+              <span class="slider-title"><span class="pointer-arrow">▶</span> 3. AKIŞ HIZI (dt)</span>
+              <span id="speedVal" class="val">1.0x</span>
+            </div>
+            <input type="range" id="speedSlider" min="0.4" max="2.0" step="0.1" value="1.0" tabindex="-1">
+          </div>
+
+          <!-- DASH (Shift) Cooldown Göstergesi -->
+          <div class="cooldown-container">
+            <div class="cooldown-header">
+              <span>💨 DASH [SHIFT]</span>
+              <span id="dashCooldownText" class="cooldown-status">HAZIR!</span>
+            </div>
+            <div class="cooldown-meter-frame">
+              <div id="dashCooldownFill" class="cooldown-meter-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+
+          <!-- Aksiyon Butonları (Space, Shift & Fotoğraf Çek) -->
+          <div class="btn-row" style="margin-top: 8px;">
+            <button id="antigravityBtn" class="action-btn space-btn" title="Türevleri ters çevir, girdaptan kurtul">
+              [SPACE] ANTIGRAV
+            </button>
+            <button id="dashBtn" class="action-btn dash-btn" title="Akıntıyı yararak ani atıl">
+              [SHIFT] DASH
+            </button>
+          </div>
+
+          <!-- Generative Art Fotoğraf Çekme Butonu -->
+          <button id="photoBtn" class="photo-btn" title="Canvas görüntüsünü PNG olarak indir (P tuşu)">
+            📸 [P] FOTOĞRAF ÇEK (PNG)
+          </button>
+        </div>
+
+        <!-- 3. Klavye Kılavuzu Kartı -->
+        <div class="panel-card">
+          <div class="card-title">🎮 KONTROLLER & İPUÇLARI</div>
+          
+          <div class="controls-hint">
+            • <span class="key-badge">W</span> <span class="key-badge">A</span> <span class="key-badge">S</span> <span class="key-badge">D</span> : <b>Akıntıya Karşı Yüz!</b> Karakteri aktif yönlendir.<br>
+            • <span class="key-badge">▲</span> / <span class="key-badge">▼</span> : Menüde gezin • <span class="key-badge">◀</span> / <span class="key-badge">▶</span> : Slider ayarla.<br>
+            • <span class="key-badge">SPACE</span> : <b>Antigravity!</b> Girdaptan ve merkezden fırla.<br>
+            • <span class="key-badge">SHIFT</span> : <b>Dash!</b> Kara delik çekiminden anlık kaçış.<br>
+            • <span class="key-badge">P</span> : <b>Fotoğraf Çek!</b> Kelebek generative art'ı kaydet.
+          </div>
+
+          <div style="height: 6px;"></div>
+
+          <div class="btn-row">
+            <button id="soundToggleBtn" class="retro-btn">🔊 SES: AÇIK</button>
+            <button id="clearTrailBtn" class="retro-btn" title="Tuvali temizle">🧹 İZİ TEMİZLE</button>
+            <button id="resetBtn" class="retro-btn danger" title="Tüm oyunu sıfırla">⟲ SIFIRLA</button>
+          </div>
+        </div>
+
+        <!-- 4. Lorenz Matematiği & Kara Delik Çekim Merkezleri Rehberi -->
+        <div class="panel-card" style="padding: 8px 12px;">
+          <div class="card-title" style="margin-bottom: 5px;">📐 LORENZ DİNAMİĞİ (x, y, z)</div>
+          <div class="math-formula">
+            dx/dt = σ(y - x) + rüzgar<br>
+            dy/dt = x(ρ - z) - y<br>
+            dz/dt = xy - βz<br>
+            <b>Kara Delikler:</b> C₁ ve C₂ denge noktalarında yoğun çekim!<br>
+            <b>Z-Ekseni Derinliği:</b> z arttıkça karakter büyür (1x, 2x, 3x).
+          </div>
+        </div>
+
+      </aside>
+
+    </main>
+
+    <!-- Alt Bilgi Notu -->
+    <footer class="footer-note">
+      8-BIT TATLIŞ PİKSEL SANATI ★ %100 fillRect() ÇİZİM ★ KLASİK LORENZ ÇEKİCİSİ SİSTEMİ
+    </footer>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
